@@ -18,7 +18,6 @@ sys.path.append(
 import params
 
 
-
 def main(mean_v, del_v, time_step, inp_beams, dim_inc = 4, num_of_rels = 1):
 
     delz_step = params.delz/params.num_of_steps

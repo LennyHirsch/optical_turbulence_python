@@ -17,14 +17,40 @@ sys.path.append(
     '/Users/ultandaly/Library/CloudStorage/OneDrive-UniversityofGlasgow/Projects/python_simulation/svd_scripts/data')
 import params
 
-def load_data(data_dir):
+def load_data(data_dir: str):
+    """
+    The load_data function loads previously saved data from the specified directory.
+
+    Args:
+
+    data_dir (str): the directory path where the data is saved
+    Returns:
+
+    res_beams (numpy.ndarray): an array of resolution beams
+    inp_beams (numpy.ndarray): an array of input beams
+    t_screens (numpy.ndarray): an array of turbulence screens"""
+
     res_beams = np.load(data_dir + '/res_beams.npy')
     inp_beams = np.load(data_dir + '/inp_beams.npy')
     t_screens = np.load(data_dir + '/turb_screens.npy')
 
     return res_beams, inp_beams, t_screens
 
-def get_mean_coupling_strength(data_dirs, res, waist_lst, pascals_row, screen_width, plt_bool):
+def get_mean_coupling_strength(data_dirs: list, res: int, waist_lst: float, pascals_row: int, screen_width: float, plt_bool: int):
+    """
+    Calculate the mean coupling strength of a range of waists for a set of data directories.
+
+    Args:
+        data_dirs (list): A list of strings containing the paths of the directories containing the data to analyze.
+        res (int): The resolution of the beams in pixels.
+        waist_lst (float): The range of waist values to analyze.
+        pascals_row (int): The Pascal's row number to use for the Hermite-Gaussian modes.
+        screen_width (float): The width of the turbulent screens used in the propagation.
+        plt_bool (int): A flag indicating whether to plot the results.
+
+    Returns:
+        np.ndarray: An array containing the mean proportional coupling strength for each calculated mode.
+    """
 #NEEDS AMENDMENT. WILL NOT DEAL WITH MULTIPLE WAISTS ACCURATELY AS OF YET
     num_of_loops = len(data_dirs)
     s_tot = []
@@ -58,8 +84,19 @@ def get_mean_coupling_strength(data_dirs, res, waist_lst, pascals_row, screen_wi
     return mean_s
         #for rec in sv
 
-def save_svd_propagation(data_dir, wst, mode_plt = [-1]):
-    
+def save_svd_propagation(data_dir: str, wst: float, mode_plt: list = [-1]):
+    """
+    The function save_svd_propagation saves the SVD results, including the overlap and reconstruction matrices, in a specified directory after calculating the SVD modes, overlap, and recreation using the calc_svd_modes and generate_hg_modes functions. It also allows an optional parameter mode_plt to plot the Gaussian reconstruction for a specific mode number.
+
+    Parameters:
+
+    data_dir : str : path to the directory containing the data to be analyzed.
+    wst : float : waist size for generating HG modes.
+    mode_plt : list : optional list of mode numbers to plot the Gaussian reconstruction.
+    Returns:
+
+    ret : bool : a boolean value indicating whether the save was successful or not.
+"""
     svd_trans_modes, svd_rec_modes = calc_svd_modes(data_dir, wst)
     
     hg_beams = svd_funcs.generate_hg_modes(params.pascals_row, params.res, params.screen_width, params.wavelength, wst)
@@ -96,8 +133,23 @@ def save_svd_propagation(data_dir, wst, mode_plt = [-1]):
             continue
         svd_funcs.plot_gaussian_reconstruction(all_recs, svd_rec_modes, md)
 
-def save_svd_results(data_save_dir, wst, olap_hld, svd_trans_modes, svd_rec_modes):
+def save_svd_results(data_save_dir: str, wst: float, olap_hld: list, svd_trans_modes: list, svd_rec_modes: list):
+    """
+    Save the SVD results in numpy format (.npy) to a given directory.
 
+    Args:
+    - data_save_dir (str): Path to the directory where the data will be saved.
+    - wst (float): Waist value used for the SVD calculation.
+    - olap_hld (list): List of overlap coefficients between the reconstructed modes and the generated modes.
+    - svd_trans_modes (list): List of singular value matrices representing the transmitted modes.
+    - svd_rec_modes (list): List of singular value matrices representing the reconstructed modes.
+
+    Returns:
+    - int: 1 if the save is successful.
+
+    Raises:
+    - None
+    """
     wst_str = str(wst).replace('.', '_')
 
     if not os.path.exists(data_save_dir):
@@ -115,8 +167,17 @@ def save_svd_results(data_save_dir, wst, olap_hld, svd_trans_modes, svd_rec_mode
 
     return 1
 
-def calc_svd_modes(data_dir, wst):
-    
+def calc_svd_modes(data_dir: str, wst: float):
+    """
+    Calculate SVD modes for a given data directory and waist size.
+
+    Args:
+    data_dir (str): The directory where the data is stored.
+    wst (float): The waist size to use for the calculation.
+
+    Returns:
+    Tuple of two 3D numpy arrays representing the SVD transformed input modes and reconstructed modes.
+    """
     if not os.path.isdir(data_dir):
         print('Data directory does not exist. Exiting program...')
         quit()
@@ -162,7 +223,7 @@ def calc_svd_modes(data_dir, wst):
 def wavelength_crsstlk(data_dir, wst, wvl_lst):
     pass
 
-def main(data_dir):
+def main(data_dir: str):
     #refactor so that data_dir is passed and can be passed as a list
     #refactor so that it can take a range of wavelengths and range of waists
     #data_dir_start = '/Users/ultandaly/Library/CloudStorage/OneDrive-UniversityofGlasgow/Projects/python_simulation/packages/svd_scripts/data/20230418/lg_prop_rep/l_2_p_2_v'

@@ -17,8 +17,21 @@ sys.path.append(
     '/Users/ultandaly/Library/CloudStorage/OneDrive-UniversityofGlasgow/Projects/python_simulation/svd_scripts/data')
 import params
 
-def propagation_loop(delz_step, data_dir, collimate_beams = 0):
+def propagation_loop(delz_step: float, data_dir: str, collimate_beams: int = 0):
+    """
+    Function: propagation_loop(delz_step, data_dir, collimate_beams = 0)
+    
+    This function generates turbulent screens, calculates input modes, propagates those modes through the turbulent screens, and saves the resulting data to a specified directory.
 
+    Parameters:
+
+        delz_step: the step size for propagation through the turbulent screens.
+        data_dir: the directory where the resulting data will be saved.
+        collimate_beams: an optional parameter that determines whether or not the propagated beams will be collimated. If not specified, it defaults to 0. Current collimation assumes that the beam can be collimated with a free-space beam equivalent gaussian propagation. This should be resolved
+    
+    Returns:
+        None
+    """
     print('\nGenerating turblent screens...')
 
     t_screens = [prop.PhaseScreen(
@@ -42,7 +55,19 @@ def propagation_loop(delz_step, data_dir, collimate_beams = 0):
 
     save_data(data, data_dir)
 
-def calculate_input_modes(z = 0):
+def calculate_input_modes(z:float = 0):
+    """The function calculate_input_modes calculates the input modes of the optical system using Laguerre-Gaussian beams. The function takes a single optional argument z, which is the propagation distance from the input aperture. The function returns a NumPy array of the calculated input beams.
+
+    Parameters:
+
+    z (optional, default=0): The propagation distance from the input aperture.
+    Returns:
+
+    inp_beams: A NumPy array of the calculated input beams.
+    Note:
+
+    This function assumes that params is a global object containing the necessary system parameters.
+    This function uses the prop.BeamProfile class to generate Laguerre-Gaussian beams."""
     # calculate input modes
     print("\nCalculating input modes...")
     inp = prop.BeamProfile(
@@ -81,13 +106,29 @@ def calculate_input_modes(z = 0):
     
     return inp_beams
 
-def propagate_modes(inp_beams, t_screens, delz_step, collimate_beams = 0):
+def propagate_modes(inp_beams: np.ndarray, t_screens: np.ndarray, delz_step: float, collimate_beams: int = 0, wavelength: float = params.wavelength):
+    """
+    Function: propagate_modes(inp_beams, t_screens, delz_step, collimate_beams = 0, wavelength = params.wavelength)
+
+    This function performs the propagation of input beams through a series of turbulent screens, using the svd_funcs.channel_propagation_pll() function to perform the actual propagation calculations. The resulting propagated beams are optionally collimated and returned as an array.
+
+    Parameters:
+
+    inp_beams: an array of input beams to be propagated.
+    t_screens: an array of turbulent screens through which the input beams will be propagated.
+    delz_step: the step size for propagation through the turbulent screens.
+    collimate_beams: an optional parameter that determines whether or not the propagated beams will be collimated. If not specified, it defaults to 0.
+    wavelength: the wavelength of the input beams. If not specified, it defaults to the wavelength parameter from params.
+    
+    Returns:
+    
+    None"""
 
     print("\nPerforming propagations through channel...")
     data_lst = []
     for beam in inp_beams:
         stor = [beam, t_screens, params.inp_ap_width, params.rec_ap_width, params.screen_width,
-                delz_step, params.res, params.wavelength]
+                delz_step, params.res, wavelength]
         data_lst.append(stor)
 
     start = time.time()
@@ -99,15 +140,28 @@ def propagate_modes(inp_beams, t_screens, delz_step, collimate_beams = 0):
     res_beams = np.asarray(res_beams)
 
     #collimate beams
+    #This method will only work under the assumption that the gaussian mode is the 30th entry of the multidimensional array
     if collimate_beams == 1:
         print('\nCollimating beams...')
         free_space_diff = calculate_input_modes(params.delz)
-        for i, fs_beam in enumerate(free_space_diff):
+        for i in free_space_diff:
             res_beams[i] *= np.exp(1j * np.angle(free_space_diff[30]))
 
     return res_beams
 
-def save_data(data, data_dir):
+def save_data(data: list, data_dir: str):
+    """
+    Save generated data to the specified directory as numpy arrays and create a readme file with the simulation
+    parameters.
+
+    Parameters:
+        data(List): List containing the generated data as numpy arrays. The list should be of the form:
+            [phz_screens, inp_beams, res_beams]
+        data_dir(str): Path of the directory where the data will be saved.
+
+    Returns:
+        None
+    """
     f_name = ['turb_screens', 'inp_beams', 'res_beams']
     for i, f in enumerate(f_name):
         if os.path.isfile(data_dir + f + '.npy'):
@@ -141,9 +195,22 @@ def save_data(data, data_dir):
     with open(data_dir + 'readme.txt', 'w') as f:
         f.writelines(pms)
 
-def main(num_of_loops, dir_name, collimate_beams):
+def main(num_of_loops: int, dir_name: str, collimate_beams: int):
     delz_step = params.delz/params.num_of_steps
+    """This is the main function that orchestrates the simulation loop. It takes in three parameters: num_of_loops, dir_name, and collimate_beams.
 
+    Parameters:
+
+    num_of_loops: an integer that specifies the number of iterations to perform the simulation loop.
+    dir_name: a string that specifies the directory name to save the simulation data.
+    collimate_beams: an integer that specifies whether to collimate the beams after propagation (1 for True and 0 for False).
+    The function starts by calculating the step size (delz_step) for the simulation loop. It then calculates the Fresnel number for the system using the input and receiver aperture diameters, wavelength, and propagation distance.
+
+    Next, it enters the simulation loop, where it creates a new directory for each iteration of the loop to store the simulation data. If the directory already exists, it will prompt the user to continue or not.
+
+    For each iteration, it calls the propagation_loop function, passing in the delz_step, data_dir, and collimate_beams parameters.
+
+    The function doesn't return any values; it only prints information about the progress of the simulation loop."""
     # get system fresnel number. Provides indication for expected number of
     # free-space modes in non-turbulent system
     fres_num = prop.fresnel_calc(

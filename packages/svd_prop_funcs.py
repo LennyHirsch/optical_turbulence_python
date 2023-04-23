@@ -22,8 +22,26 @@ import propagation_functions as prop
 
 #LEGACY FUNCTIONS: REPLACED DUE TO PARALLELISM
 
-def channel_propagtion(inp_beams, t_screens, inp_ap_width, rec_ap_width,
-                       screen_width, delz_step, mode_num, res, wavelength=1550e-9):
+def channel_propagtion(inp_beams: list(np.ndarray), t_screens: list(np.ndarray), inp_ap_width: float, rec_ap_width: float, screen_width: float, delz_step: float, mode_num: int, res: int, wavelength: float = 1550e-9) -> np.ndarray:
+
+    """
+    Propagates a set of input beams through a turbulent channel.
+
+    Args:
+    - inp_beams (np.ndarray): Input beams.
+    - t_screens (List[Screen]): List of screens representing the channel turbulence.
+    - inp_ap_width (float): Width of the input aperture.
+    - rec_ap_width (float): Width of the output (receiving) aperture.
+    - screen_width (float): Width of the screen.
+    - delz_step (float): Step size for propagating the beam through the screens.
+    - mode_num (int): Number of modes.
+    - res (int): Resolution of the output beam.
+    - wavelength (float): Wavelength of the beam.
+
+    Returns:
+    - res_beam (np.ndarray): Output beams after propagation through the channel.
+    """
+    
     # need to introduce option to instead use hg modes for input modes
     # define class for generating modes
     probe_beam = prop.BeamProfile(res, screen_width, wavelength)
@@ -55,8 +73,22 @@ def channel_propagtion(inp_beams, t_screens, inp_ap_width, rec_ap_width,
     return(res_beam)
 
 # DON'T USE
-def svd_calc_hg_decomp(res_beams, res, pascals_row, waist_lst):
-    
+def svd_calc_hg_decomp(res_beams: np.ndarray, res: int, pascals_row: int, waist_lst: list(float)):
+    """
+    Calculate the singular value decomposition (SVD) of the measured beams and perform a Hermite-Gaussian decomposition
+    with different waist sizes.
+
+    Args:
+
+    res_beams: 2D array containing the measured beams
+    res: int value representing the number of pixels per axis
+    pascals_row: int value representing the number of rows in Pascal's triangle to be considered
+    waist_lst: list of float values representing the different waist sizes
+    Returns:
+
+    reconstruct: 4D array containing the reconstructed beams for each waist size
+    """
+
     inp = prop.BeamProfile(res, screen_width, wavelength)
 
     inp_beams_waists = []
@@ -87,7 +119,22 @@ def svd_calc_hg_decomp(res_beams, res, pascals_row, waist_lst):
     return reconstruct
 
 # Plotting functions
-def plot_inp_out(inp_beams, res_beams, ind_1):
+def plot_inp_out(inp_beams: np.ndarray, res_beams: np.ndarray, ind_1: int):
+    """
+    Plots the input and output beams of a single mode.
+
+    Args:
+    - inp_beams (np.ndarray): A 3D array of input beams for all modes.
+    - res_beams (np.ndarray): A 3D array of reconstructed beams for all modes.
+    - ind_1 (int): An integer index of the mode.
+
+    Returns:
+    - bool: Returns False if an IndexError occurs, otherwise no return value.
+
+    Raises:
+    - IndexError: If the values for indices relating to plotting are out of bounds.
+    """
+
     fig, (ax1, ax2) = plt.subplots(1, 2)
     try:
         inp_plt = ax1.imshow(np.abs(inp_beams[ind_1]))
@@ -102,7 +149,19 @@ def plot_inp_out(inp_beams, res_beams, ind_1):
     fig.tight_layout()
     plt.show()
 
-def plot_gaussian_reconstruction(reconstruct, res_beams, plt_mode):
+def plot_gaussian_reconstruction(reconstruct: np.ndarray, res_beams: np.ndarray, plt_mode: list(int)):
+    """
+    Plots the reconstructed and measured Gaussian beam profiles for a given mode.
+
+    Args:
+        reconstruct (np.ndarray): Array of reconstructed beam profiles.
+        res_beams (np.ndarray): Array of measured beam profiles.
+        plt_mode (list[int]): List of modes to be plotted.
+
+    Returns:
+        None
+    """
+
     fig_1, (ax1, ax2) = plt.subplots(1, 2)
     recon_plt_1 = ax1.imshow(np.abs(reconstruct[plt_mode]))
     res_plt_1 = ax2.imshow(np.abs(res_beams[plt_mode]))
@@ -129,7 +188,22 @@ def plot_gaussian_reconstruction(reconstruct, res_beams, plt_mode):
     plt.draw_all()
     plt.show()
 
-def crosstalk_plot(beams_true, beams_tst, mode_num, res):
+def crosstalk_plot(beams_true: np.ndarray, beams_tst: np.ndarray, mode_num: int, res: int):
+    """
+    Inputs:
+
+    beams_true (numpy.ndarray): Input array of true beam profiles with shape (mode_num * res * res).
+    beams_tst (numpy.ndarray): Input array of predicted beam profiles with shape (mode_num * res * res).
+    mode_num (int): Number of modes being considered.
+    res (int): Resolution of the beam profiles.
+    
+    Output:
+
+    None.
+
+    Description:
+    This function takes in two arrays of beam profiles beams_true and beams_tst and computes the crosstalk between them. The input beam profiles are reshaped according to mode_num and res and the crosstalk is calculated as the overlap integral between each pair of true and predicted beam profiles. The function then plots the resulting crosstalk matrix using imshow and displays a colorbar for reference.
+    """
     beams_true_flt = np.array(beams_true.reshape(mode_num, res, res))
     beams_tst_flt = np.array(beams_tst.reshape(mode_num, res, res))
     cross = np.zeros((mode_num, mode_num))
@@ -146,8 +220,27 @@ def crosstalk_plot(beams_true, beams_tst, mode_num, res):
     plt.colorbar(im, fraction = 0.046, pad = 0.04)
     plt.show()
 
-def channel_propagation_pll(lst):
-    
+def channel_propagation_pll(lst: list) -> np.ndarray:
+    """
+    Simulate the propagation of an optical beam through a series of phase screens and 
+    calculate the resulting field at the receiver aperture.
+
+    Args:
+    - lst: A list containing the following parameters:
+        - inp_beam: A 2D numpy array representing the input beam profile
+        - t_screens: A list of turbulence screen objects representing the phase screens
+        - inp_ap_width: The diameter of the input aperture in meters
+        - rec_ap_width: The diameter of the receiver aperture in meters
+        - screen_width: The size of the turbulence screens in meters
+        - delz_step: The step size for propagating through the screens in meters
+        - res: The number of pixels per side of the simulation grid
+        - wavelength: The wavelength of the incident beam in meters
+
+    Returns:
+    - A 2D numpy array representing the field at the receiver aperture after propagating 
+      through the turbulence screens.
+    """
+
     inp_beam = lst[0]
     t_screens = lst[1]
     inp_ap_width = lst[2]
@@ -179,8 +272,20 @@ def channel_propagation_pll(lst):
     #probe_beam.low_pass_filter(30)
     return(probe_beam.field)
 
-def trans_matrix_calc(res_beams, res, compact_res, screen_width):
+def trans_matrix_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> list(np.ndarray):
+    """
+    Calculates the overlap integral between Hermite-Gaussian modes and beam profiles
 
+    Args:
+        res_beams (numpy.ndarray): Array of beam profiles with shape (num_beams, res, res)
+        res (int): Resolution of beam profiles
+        pascals_row (int): The highest index of the Hermite-Gaussian mode to be calculated
+        waist (float): Waist size of the Hermite-Gaussian beam
+        screen_width (float): Width of the screen in meters
+
+    Returns:
+        numpy.ndarray: A matrix of overlap integrals with shape (num_beams, num_modes)
+    """
     t_mat = []
 
     low_bound = res//2 - (compact_res//2)
@@ -192,12 +297,25 @@ def trans_matrix_calc(res_beams, res, compact_res, screen_width):
 
         vec_beam = np.conj(np.reshape(beam, compact_res*compact_res) * (screen_width/res))
 
-        # 64-bit complex to reduce memory load
         t_mat.append(vec_beam.astype('complex128'))
     return t_mat
 
 #ADJUST THIS TO MAKE USE OF GENERATE HG MODES
-def trans_matrix_hg_calc(res_beams, res, pascals_row, waist, screen_width):
+def trans_matrix_hg_calc(res_beams: list, res: int, pascals_row: int, waist: float, screen_width: float) -> list:
+    """
+    The function then iterates over the list of res_beams and calculates the overlap integral between each beam and the modes in inp_beams. The result is a matrix of overlap coefficients, t_mat, where each row corresponds to a beam in res_beams and each column corresponds to a mode in inp_beams.
+
+    Inputs:
+
+    res_beams: A list of 2D numpy arrays representing beam profiles.
+    res: The resolution of the beam profiles.
+    pascals_row: The maximum value of n and m for the Hermite-Gaussian modes to be generated.
+    waist: The waist size of the Hermite-Gaussian modes.
+    screen_width: The width of the screen on which the beams are projected.
+    
+    Outputs:
+
+    t_mat: A 2D numpy array representing the overlap coefficients between the beams in res_beams and the Hermite-Gaussian modes."""
     t_mat = []
     inp = prop.BeamProfile(res, screen_width, 1.0)
 
@@ -225,7 +343,20 @@ def trans_matrix_hg_calc(res_beams, res, pascals_row, waist, screen_width):
     
     return t_mat
 
-def trans_matrix_hg_calc_circular(res_beams, res, pascals_row, waist, screen_width):
+def trans_matrix_hg_calc_circular(res_beams: list, res: int, pascals_row: int, waist: float, screen_width: float) -> list:
+    """
+    Calculate the transfer matrix for the circular aperture case using the Hermite-Gaussian (HG) modes.
+
+    Parameters:
+    res_beams (np.ndarray): Input beam profiles.
+    res (int): Resolution of the beam profiles.
+    pascals_row (int): Maximum index of the HG modes.
+    waist (float): Waist size of the HG modes.
+    screen_width (float): Width of the screen.
+
+    Returns:
+    np.ndarray: The transfer matrix for the circular aperture case.
+    """
     t_mat = []
     inp = prop.BeamProfile(res, screen_width, 1.0)
 
@@ -275,7 +406,20 @@ def trans_matrix_hg_calc_circular(res_beams, res, pascals_row, waist, screen_wid
     
     return t_mat
 
-def svd_hg_waists(res_beams, res, waist_lst, pascals_row, screen_width):
+def svd_hg_waists(res_beams: list, res: int, waist_lst: list, pascals_row: int, screen_width: float) -> tuple(np.ndarray):
+    """
+    Calculates the singular value decompositions (SVDs) for a range of waist sizes of Hermite-Gaussian beams.
+
+    Args:
+    - res_beams (np.ndarray): Array of beam profiles with dimensions (num_beams, res, res).
+    - res (int): Resolution of each beam profile in pixels.
+    - waist_lst (np.ndarray): Array of waist sizes to calculate SVDs for.
+    - pascals_row (int): Maximum row of Pascal's triangle to use in calculating Hermite-Gaussian modes.
+    - screen_width (float): Width of the screen in meters.
+
+    Returns:
+    - svd_vals (list): List of lists containing the waist size, left singular vectors (u), singular values (s), right singular vectors (v), and transmission matrix (t_mat) for each SVD calculation.
+    """
     #pascals_row = 15
     #waist_lst = np.linspace(0.025, 0.035, 10)
 
@@ -287,22 +431,67 @@ def svd_hg_waists(res_beams, res, waist_lst, pascals_row, screen_width):
     #svd_vals_np = np.asarray(svd_vals)
     return svd_vals
 
-def svd_calc_hg(res_beams, res, pascals_row, waist, screen_width):
+def svd_calc_hg(res_beams: list, res: int, pascals_row: int, waist: float, screen_width: float) -> tuple(np.ndarray):
+    """
+    Calculates the singular value decomposition (SVD) for Hermite-Gaussian beams with given waist size.
+
+    Args:
+    - res_beams (np.ndarray): Array of beam profiles with dimensions (num_beams, res, res).
+    - res (int): Resolution of each beam profile in pixels.
+    - pascals_row (int): Maximum row of Pascal's triangle to use in calculating Hermite-Gaussian modes.
+    - waist (float): Waist size of Hermite-Gaussian beams in meters.
+    - screen_width (float): Width of the screen in meters.
+
+    Returns:
+    - u (np.ndarray): Left singular vectors of the SVD.
+    - s (np.ndarray): Singular values of the SVD.
+    - v (np.ndarray): Right singular vectors of the SVD.
+    - t_mat (list): Transmission matrix used in the SVD calculation.
+    """
 
     t_mat = trans_matrix_hg_calc(res_beams, res, pascals_row, waist, screen_width)
     u, s, v = np.linalg.svd(np.asarray(t_mat).T, full_matrices=False)
     return u, s, v, t_mat
 
-def svd_calc(res_beams, res, compact_res, screen_width):
+def svd_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> tuple(np.ndarray):
+    """
+    Calculates the singular value decomposition (SVD) for given beam profile.
 
+    Args:
+    - res_beams (np.ndarray): Array of beam profiles with dimensions (num_beams, res, res).
+    - res (int): Resolution of each beam profile in pixels.
+    - compact_res (int): Resolution of the area around the aperture to use in the SVD calculation.
+    - screen_width (float): Width of the screen in meters.
+
+    Returns:
+    - u (np.ndarray): Left singular vectors of the SVD.
+    - s (np.ndarray): Singular values of the SVD.
+    - v (np.ndarray): Right singular vectors of the SVD.
+"""
     # use compact_res to partition only area around the aperture
     t_mat = trans_matrix_calc(res_beams, res, compact_res, screen_width)
 
     u, s, v = np.linalg.svd(np.asarray(t_mat).T, full_matrices=False)
     return u, s, v
 
-def svd_inp_modes_calc(v, inp_beams, mode_num, res, trans_modes_num, screen_width):
+def svd_inp_modes_calc(v: np.ndarray, inp_beams: np.ndarray, mode_num: int, res: int, trans_modes_num: int, screen_width: float) -> np.ndarray:
+    """
+    Calculates the input modes in the transmission basis using singular value decomposition (SVD).
+    
+    Args:
+        v: A numpy array of shape (mode_num, mode_num) containing the right singular vectors of the
+           overlap matrix.
+        inp_beams: A numpy array of shape (mode_num*res*res,) containing the input beams to be decomposed.
+        mode_num: An integer representing the number of input modes.
+        res: An integer representing the number of pixels in each dimension of the input beams.
+        trans_modes_num: An integer representing the number of transmission modes.
+        screen_width: A float representing the width of the screen in meters.
+    
+    Returns:
+        A numpy array of shape (trans_modes_num, res, res) representing the input modes in the transmission basis.
 
+        Note: Do not conjugate or transpose v as returned from np.linalg.svd
+    """
     inp_arr = np.reshape(inp_beams, (mode_num, res, res))
     svd_trans_modes = np.zeros((trans_modes_num, res, res), dtype = np.complex128)
 
@@ -318,8 +507,29 @@ def svd_inp_modes_calc(v, inp_beams, mode_num, res, trans_modes_num, screen_widt
         svd_trans_modes[k] = svd_trans_modes[k] / np.sqrt(norm_const)
     return svd_trans_modes
 
-def svd_reconstruct(mode_num, meas_beams, svd_rec_modes, res):
+def svd_reconstruct(mode_num: int, meas_beams: list, svd_rec_modes:list, res: int) -> tuple(np.ndarray):
+    """
+    Reconstructs the input beams from the measured beams and the SVD-processed received modes.
 
+    Parameters:
+    -----------
+    mode_num: int
+        Number of modes to reconstruct.
+    meas_beams: List[np.ndarray]
+        List of numpy arrays containing the measured beams.
+    svd_rec_modes: np.ndarray
+        Array of numpy arrays containing the received modes.
+    res: int
+        The resolution of the beam profiles.
+    
+    Returns:
+    --------
+    Tuple containing:
+    reconstruct: np.ndarray
+        Array of numpy arrays containing the reconstructed input modes.
+    olap_res: List[List[float]]
+        List of lists containing the overlap values for each reconstructed input mode with each received mode.
+    """
     # I have to normalise the received modes to get accurate overlap calculations
     # This doesn't make sense to me. If the received modes are orthogonal
     # then why does it matter if the modes are orthongonal? I am calculating the
@@ -347,7 +557,19 @@ def err_det(reconstruct_modes, meas_beams, res):
     for i in range(mode_num):
         arr_err = reconstruct_modes[i] - meas_beams[i]
 
-def generate_hg_modes(pascals_row, res ,screen_width, wavelength, wst):
+def generate_hg_modes(pascals_row: int, res: int ,screen_width: float, wavelength: float, wst: float) -> np.ndarray:
+    """
+    The `generate_hg_modes` function calculates the Hermite-Gaussian (HG) modes for overlap.
+
+    Parameters:
+    - `pascals_row`: The maximum order of HG modes to calculate (integer).
+    - `res`: The number of points per dimension of the simulation grid (integer).
+    - `screen_width`: The width of the screen (in meters) that the HG modes will be projected onto (float).
+    - `wavelength`: The wavelength of the light used in the simulation (in meters) (float).
+    - `wst`: The waist of the beam in meters (float).
+
+    Returns:
+    - `hg_beams`: A list of numpy arrays containing the HG modes (complex)."""
 
     print("\nCalculating HG modes for overlap...")
     inp = prop.BeamProfile(
@@ -367,6 +589,7 @@ def generate_hg_modes(pascals_row, res ,screen_width, wavelength, wst):
             hg_beams.append(inp.field / np.sqrt(norm_const))
 
     return hg_beams
+
 if __name__ == '__main__':
 
     #Has been incorporated into other files, should now not be run directly
