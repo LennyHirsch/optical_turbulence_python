@@ -1,6 +1,7 @@
 import numpy as np
 from propagation_functions import BeamProfile
 from scipy import ndimage, stats
+from scipy.linalg import pinv
 
 def img_list_autocovariance(lis, ref_point=0, mean_image = 0):
     if isinstance(mean_image, int):
@@ -58,3 +59,58 @@ def diffraction_correction(input_beam: np.ndarray, prop_dist: float, res: int, s
 
 def gaussian_smoothing(input_beam: np.ndarray, gaussian_width: float):
     return(ndimage.gaussian_filter(input_beam, gaussian_width))
+
+def zernike_generation(n:int, m:int, res:int, aperture)->np.ndarray:
+
+    m_abs = np.abs(m)
+    radial_term = np.zeros((res, res))
+    k_max = ((n - m_abs) // 2) + 1
+    
+    x = np.linspace(-1, 1, res)
+    y = np.linspace(-1, 1, res)
+
+    XX, YY = np.meshgrid(x, y)
+    rho = np.sqrt(XX**2 + YY**2)
+    theta = np.arctan2(XX, YY)
+
+
+    for k in range(k_max ):
+        numer = ((-1) ** k) * (np.math.factorial(n-k))
+
+        denom_1 = np.math.factorial(k)
+        denom_2 = np.math.factorial((n + m_abs)/2 - k)
+        denom_3 = np.math.factorial((n - m_abs)/2 - k)
+
+        radial_term += (numer * rho ** (n - (2*k)))/(denom_1 * denom_2 * denom_3)
+
+    if m < 0:
+        angle_term = np.sin(m_abs * theta)
+    else:
+        angle_term = np.cos(m_abs * theta)
+
+    if aperture == 1:
+        rho_mask = np.where(rho > 1, 0, 1)
+        radial_term *= rho_mask
+
+    return radial_term * angle_term
+
+def zernike_decomp(wavefront:np.ndarray, max_n:int, aperture):
+    '''this is not the most efficient method, but it does work
+    uses the pseudoinverse to determine the zernike components that make up a wavefront. '''
+    calc_weightings = []
+    z_lst = []
+    res = np.shape(wavefront)[0]
+
+    for n in range(max_n):
+        for m in range(-n, n+1, 2):
+            zernike = zernike_generation(n, m, res, aperture)
+            z_lst.append(zernike.flatten())
+            calc_weightings.append([n, m])
+
+    z_lst = np.asarray(z_lst).T
+    weightings = pinv(z_lst) @ wavefront.flatten()
+
+    for i, weighting in enumerate(weightings):
+        calc_weightings[i].append(weighting)
+
+    return calc_weightings

@@ -35,4 +35,4 @@ plt_mode = ((p_max) * (l_pos_min + 1))
 pascals_row = 5
 
 #waist_lst = np.linspace(0.015, 0.035, 11)
-waist_lst = [0.025]
+waist_lst = [0.024]

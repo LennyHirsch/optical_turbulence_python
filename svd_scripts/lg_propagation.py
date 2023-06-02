@@ -123,7 +123,7 @@ def propagate_modes(inp_beams: np.ndarray, t_screens: np.ndarray, delz_step: flo
     Returns:
     
     None"""
-
+    print(f'\nCurrent Wavelength is: {wavelength}')
     print("\nPerforming propagations through channel...")
     data_lst = []
     for beam in inp_beams:
@@ -143,9 +143,11 @@ def propagate_modes(inp_beams: np.ndarray, t_screens: np.ndarray, delz_step: flo
     #This method will only work under the assumption that the gaussian mode is the 30th entry of the multidimensional array
     if collimate_beams == 1:
         print('\nCollimating beams...')
-        free_space_diff = calculate_input_modes(params.delz)
-        for i in free_space_diff:
-            res_beams[i] *= np.exp(1j * np.angle(free_space_diff[30]))
+       # free_space_diff = calculate_input_modes(params.delz)
+        free_space_diff = prop.BeamProfile(params.res, params.screen_width, wavelength)
+        free_space_diff.laguerre_gaussian_beam(0, 0, params.waist, params.delz)
+        for i in range(len(res_beams)):
+            res_beams[i] *= np.exp(1j * np.angle(free_space_diff.field))
 
     return res_beams
 
@@ -216,6 +218,7 @@ def main(num_of_loops: int, dir_name: str, collimate_beams: int):
     fres_num = prop.fresnel_calc(
         params.inp_ap_width, params.rec_ap_width, 1550e-9, params.delz)
     print(f"Fresnel Number for system: {fres_num}")
+    print(f"\nFried parameter: {params.r0_tot}")
 
     # generate the turbulent screens
     # at the moment I am generating these screens for single propagtion. Need
