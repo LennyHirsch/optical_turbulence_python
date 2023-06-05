@@ -20,9 +20,9 @@ from multiprocessing import Pool
 
 import propagation_functions as prop
 
-#LEGACY FUNCTIONS: REPLACED DUE TO PARALLELISM
 
-def channel_propagtion(inp_beams: list(np.ndarray), t_screens: list(np.ndarray), inp_ap_width: float, rec_ap_width: float, screen_width: float, delz_step: float, mode_num: int, res: int, wavelength: float = 1550e-9) -> np.ndarray:
+#Consider using parallel propagation instead
+def channel_propagtion(inp_beams: list, t_screens: list, inp_ap_width: float, rec_ap_width: float, screen_width: float, delz_step: float, mode_num: int, res: int, wavelength: float = 1550e-9) -> np.ndarray:
 
     """
     Propagates a set of input beams through a turbulent channel.
@@ -73,152 +73,6 @@ def channel_propagtion(inp_beams: list(np.ndarray), t_screens: list(np.ndarray),
     return(res_beam)
 
 # DON'T USE
-def svd_calc_hg_decomp(res_beams: np.ndarray, res: int, pascals_row: int, waist_lst: list(float)):
-    """
-    Calculate the singular value decomposition (SVD) of the measured beams and perform a Hermite-Gaussian decomposition
-    with different waist sizes.
-
-    Args:
-
-    res_beams: 2D array containing the measured beams
-    res: int value representing the number of pixels per axis
-    pascals_row: int value representing the number of rows in Pascal's triangle to be considered
-    waist_lst: list of float values representing the different waist sizes
-    Returns:
-
-    reconstruct: 4D array containing the reconstructed beams for each waist size
-    """
-
-    inp = prop.BeamProfile(res, screen_width, wavelength)
-
-    inp_beams_waists = []
-    mode_num = int(((1/2) * pascals_row) * (pascals_row + 1))
-
-    #calculate hg modes with different waist sizes
-    for waist in waist_lst:
-        inp_beams = []
-        for n in range(pascals_row):
-            m_max = pascals_row-n
-            for m in range(m_max):
-                inp.hermite_gaussian_beam(n, m, waist)
-                inp_beams.append(inp.field)
-
-        inp_beams_waists.append(inp_beams)
-    
-    inp_beams_waists = np.asarray(inp_beams_waists)
-    reconstruct = np.zeros((len(waist_lst), mode_num, res, res), dtype = np.complex128)
-
-    #attempt to reconstruct the svd_received modes using different HG waist sizes 
-    for i, wst in enumerate(inp_beams_waists):
-        flat_wst = np.reshape(wst, (mode_num, res, res))
-        for j, beam in enumerate(res_beams[0:mode_num]):
-            for md in flat_wst:
-                olap = np.trapz(np.trapz(beam * np.conj(md)))
-                reconstruct[i, j] += olap * md
-
-    return reconstruct
-
-# Plotting functions
-def plot_inp_out(inp_beams: np.ndarray, res_beams: np.ndarray, ind_1: int):
-    """
-    Plots the input and output beams of a single mode.
-
-    Args:
-    - inp_beams (np.ndarray): A 3D array of input beams for all modes.
-    - res_beams (np.ndarray): A 3D array of reconstructed beams for all modes.
-    - ind_1 (int): An integer index of the mode.
-
-    Returns:
-    - bool: Returns False if an IndexError occurs, otherwise no return value.
-
-    Raises:
-    - IndexError: If the values for indices relating to plotting are out of bounds.
-    """
-
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    try:
-        inp_plt = ax1.imshow(np.abs(inp_beams[ind_1]))
-
-        res_plt = ax2.imshow(np.abs(res_beams[ind_1]))
-    except IndexError:
-        print('IndexError: Values for indices relating to plotting are out of bounds. Continuing without plotting.')
-        return False
-    
-    fig.colorbar(inp_plt, ax=ax1, fraction=0.046, pad=0.04)
-    fig.colorbar(res_plt, ax=ax2, fraction=0.046, pad=0.04)
-    fig.tight_layout()
-    plt.show()
-
-def plot_gaussian_reconstruction(reconstruct: np.ndarray, res_beams: np.ndarray, plt_mode: list(int)):
-    """
-    Plots the reconstructed and measured Gaussian beam profiles for a given mode.
-
-    Args:
-        reconstruct (np.ndarray): Array of reconstructed beam profiles.
-        res_beams (np.ndarray): Array of measured beam profiles.
-        plt_mode (list[int]): List of modes to be plotted.
-
-    Returns:
-        None
-    """
-
-    fig_1, (ax1, ax2) = plt.subplots(1, 2)
-    recon_plt_1 = ax1.imshow(np.abs(reconstruct[plt_mode]))
-    res_plt_1 = ax2.imshow(np.abs(res_beams[plt_mode]))
-    fig_1.colorbar(recon_plt_1, ax=ax1, fraction=0.046, pad=0.04)
-    fig_1.colorbar(res_plt_1, ax=ax2, fraction=0.046, pad=0.04)
-
-    ax1.set_title('Reconstructed')
-    ax2.set_title('Measured')
-
-    fig_1.tight_layout()
-
-    fig_2, (ax3, ax4) = plt.subplots(1, 2)
-    recon_plt_2 = ax3.imshow(np.angle(
-        reconstruct[plt_mode]), cmap='hsv', interpolation='none')
-    res_plt_2 = ax4.imshow(np.angle(res_beams[plt_mode]), cmap = 'hsv', interpolation = 'none')
-    fig_2.colorbar(recon_plt_2, ax=ax3, fraction=0.046, pad=0.04)
-    fig_2.colorbar(res_plt_2, ax=ax4, fraction=0.046, pad=0.04)
-
-    ax3.set_title('Reconstructed')
-    ax4.set_title('Measured')
-
-    fig_2.tight_layout()
-    
-    plt.draw_all()
-    plt.show()
-
-def crosstalk_plot(beams_true: np.ndarray, beams_tst: np.ndarray, mode_num: int, res: int):
-    """
-    Inputs:
-
-    beams_true (numpy.ndarray): Input array of true beam profiles with shape (mode_num * res * res).
-    beams_tst (numpy.ndarray): Input array of predicted beam profiles with shape (mode_num * res * res).
-    mode_num (int): Number of modes being considered.
-    res (int): Resolution of the beam profiles.
-    
-    Output:
-
-    None.
-
-    Description:
-    This function takes in two arrays of beam profiles beams_true and beams_tst and computes the crosstalk between them. The input beam profiles are reshaped according to mode_num and res and the crosstalk is calculated as the overlap integral between each pair of true and predicted beam profiles. The function then plots the resulting crosstalk matrix using imshow and displays a colorbar for reference.
-    """
-    beams_true_flt = np.array(beams_true.reshape(mode_num, res, res))
-    beams_tst_flt = np.array(beams_tst.reshape(mode_num, res, res))
-    cross = np.zeros((mode_num, mode_num))
-    for i in tqdm(range(mode_num)):
-        for j in range(mode_num):
-        # for this case I do not normalise my inut vectors
-            olap=np.trapz(np.trapz(beams_true_flt[i] * np.conj(beams_tst_flt[j])))
-            cross[i, j] = np.abs(olap)
-
-
-    fig, ax = plt.subplots(1)
-    im = ax.imshow(cross/cross[0, 0])
-
-    plt.colorbar(im, fraction = 0.046, pad = 0.04)
-    plt.show()
 
 def channel_propagation_pll(lst: list) -> np.ndarray:
     """
@@ -272,7 +126,7 @@ def channel_propagation_pll(lst: list) -> np.ndarray:
     #probe_beam.low_pass_filter(30)
     return(probe_beam.field)
 
-def trans_matrix_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> list(np.ndarray):
+def trans_matrix_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> list:
     """
     Calculates the overlap integral between Hermite-Gaussian modes and beam profiles
 
@@ -333,6 +187,7 @@ def trans_matrix_hg_calc(res_beams: list, res: int, pascals_row: int, waist: flo
             inp_beams.append(inp.field / np.sqrt(norm_const))
             #print(f"n: {n}, m: {m}, {np.trapz(np.trapz(inp.field * np.conj(inp.field), dx = screen_width/res), dx = screen_width/res)}")
 
+    #TO DO: THIS CONJUGATE LOOKS TO BE THE WRONG WAY AROUND, BUT IT CANCELS WITH THE FACT THAT I AM NOT TAKING THE CONJUGATE OF THE V MATRIX
     for beam in tqdm(res_beams):
         olap = []
         for md in inp_beams:
@@ -406,7 +261,7 @@ def trans_matrix_hg_calc_circular(res_beams: list, res: int, pascals_row: int, w
     
     return t_mat
 
-def svd_hg_waists(res_beams: list, res: int, waist_lst: list, pascals_row: int, screen_width: float) -> tuple(np.ndarray):
+def svd_hg_waists(res_beams: list, res: int, waist_lst: list, pascals_row: int, screen_width: float) -> tuple:
     """
     Calculates the singular value decompositions (SVDs) for a range of waist sizes of Hermite-Gaussian beams.
 
@@ -431,7 +286,7 @@ def svd_hg_waists(res_beams: list, res: int, waist_lst: list, pascals_row: int, 
     #svd_vals_np = np.asarray(svd_vals)
     return svd_vals
 
-def svd_calc_hg(res_beams: list, res: int, pascals_row: int, waist: float, screen_width: float) -> tuple(np.ndarray):
+def svd_calc_hg(res_beams: list, res: int, pascals_row: int, waist: float, screen_width: float) -> tuple:
     """
     Calculates the singular value decomposition (SVD) for Hermite-Gaussian beams with given waist size.
 
@@ -453,7 +308,7 @@ def svd_calc_hg(res_beams: list, res: int, pascals_row: int, waist: float, scree
     u, s, v = np.linalg.svd(np.asarray(t_mat).T, full_matrices=False)
     return u, s, v, t_mat
 
-def svd_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> tuple(np.ndarray):
+def svd_calc(res_beams: list, res: int, compact_res: int, screen_width: float) -> tuple:
     """
     Calculates the singular value decomposition (SVD) for given beam profile.
 
@@ -507,7 +362,7 @@ def svd_inp_modes_calc(v: np.ndarray, inp_beams: np.ndarray, mode_num: int, res:
         svd_trans_modes[k] = svd_trans_modes[k] / np.sqrt(norm_const)
     return svd_trans_modes
 
-def svd_reconstruct(mode_num: int, meas_beams: list, svd_rec_modes:list, res: int) -> tuple(np.ndarray):
+def svd_reconstruct(mode_num: int, meas_beams: list, svd_rec_modes:list, res: int) -> tuple:
     """
     Reconstructs the input beams from the measured beams and the SVD-processed received modes.
 
@@ -550,13 +405,6 @@ def svd_reconstruct(mode_num: int, meas_beams: list, svd_rec_modes:list, res: in
         olap_res.append(olap_beam)
     return reconstruct, olap_res
 
-def err_det(reconstruct_modes, meas_beams, res):
-
-    mode_num = np.shape(reconstruct_modes)
-    err = []
-    for i in range(mode_num):
-        arr_err = reconstruct_modes[i] - meas_beams[i]
-
 def generate_hg_modes(pascals_row: int, res: int ,screen_width: float, wavelength: float, wst: float) -> np.ndarray:
     """
     The `generate_hg_modes` function calculates the Hermite-Gaussian (HG) modes for overlap.
@@ -589,6 +437,219 @@ def generate_hg_modes(pascals_row: int, res: int ,screen_width: float, wavelengt
             hg_beams.append(inp.field / np.sqrt(norm_const))
 
     return hg_beams
+
+
+def hg_decomp_calc(ref_beams, pascals_row, decomp_wst, res, screen_width, wvl):
+    """
+    Calculates the decomposition matrix of ref_beams into SP Hg's. Consider normalisation after to get more accurate results for reconstruction
+
+    params:
+    - ref_beams: a list of beams to be decomposed
+    - pascals_row: dictates the max 'row' of HGS to use for the decomposition
+    - decomp_wst: the waist of the decomposition beams
+    - res: the simulation resolution (int -> square screen)
+    - screen_width: the simulation screen width
+    - wvl: the wavelength of the beams
+
+    returns:
+    - a 2D overlap matrix between all of the input beams and the HG beams
+    """
+
+    hg_modes = generate_hg_modes(
+        pascals_row, res, screen_width, wvl, decomp_wst)
+
+    pixel_size = screen_width/res
+
+    olap = []
+
+    for i in range(len(ref_beams)):
+        olap_hld = []
+        for j in range(len(hg_modes)):
+            olap_ini = np.trapz(np.trapz(
+                ref_beams[i] * np.conj(hg_modes[j]), dx=pixel_size), dx=pixel_size)
+            olap_hld.append(olap_ini)
+        olap.append(olap_hld)
+
+    return olap
+
+def hg_crsstalk_matrix(basis_vecs, beams):
+    """
+    finds the crosstalk matrix between two vectors. The idea is that one vector will be the HG decomposition of the basis vectors, and the other will be the HG decomposition of the received beams. After all, the HG values are all that the superpixels 'should' be able to determine
+    """
+    olap_wvl = []
+    mode_num = len(basis_vecs)
+
+    for i in range(mode_num):
+        olap_hld = []
+        for j in range(mode_num):
+            olap_ini = np.dot(beams[i], np.conj(basis_vecs[j]))
+            olap_hld.append(olap_ini)
+        olap_wvl.append(olap_hld)
+
+    return olap_wvl
+
+#Plotting functions
+def plot_gaussian_reconstruction(reconstruct: np.ndarray, res_beams: np.ndarray, plt_mode: list):
+    """
+    Plots the reconstructed and measured Gaussian beam profiles for a given mode.
+
+    Args:
+        reconstruct (np.ndarray): Array of reconstructed beam profiles.
+        res_beams (np.ndarray): Array of measured beam profiles.
+        plt_mode (list[int]): List of modes to be plotted.
+
+    Returns:
+        None
+    """
+
+    fig_1, (ax1, ax2) = plt.subplots(1, 2)
+    recon_plt_1 = ax1.imshow(np.abs(reconstruct[plt_mode]))
+    res_plt_1 = ax2.imshow(np.abs(res_beams[plt_mode]))
+    fig_1.colorbar(recon_plt_1, ax=ax1, fraction=0.046, pad=0.04)
+    fig_1.colorbar(res_plt_1, ax=ax2, fraction=0.046, pad=0.04)
+
+    ax1.set_title('Reconstructed')
+    ax2.set_title('Measured')
+
+    fig_1.tight_layout()
+
+    fig_2, (ax3, ax4) = plt.subplots(1, 2)
+    recon_plt_2 = ax3.imshow(np.angle(
+        reconstruct[plt_mode]), cmap='hsv', interpolation='none')
+    res_plt_2 = ax4.imshow(
+        np.angle(res_beams[plt_mode]), cmap='hsv', interpolation='none')
+    fig_2.colorbar(recon_plt_2, ax=ax3, fraction=0.046, pad=0.04)
+    fig_2.colorbar(res_plt_2, ax=ax4, fraction=0.046, pad=0.04)
+
+    ax3.set_title('Reconstructed')
+    ax4.set_title('Measured')
+
+    fig_2.tight_layout()
+
+    plt.draw_all()
+    plt.show()
+
+#LEGACY
+
+'''
+# Plotting functions
+def plot_inp_out(inp_beams: np.ndarray, res_beams: np.ndarray, ind_1: int):
+    """
+    Plots the input and output beams of a single mode.
+
+    Args:
+    - inp_beams (np.ndarray): A 3D array of input beams for all modes.
+    - res_beams (np.ndarray): A 3D array of reconstructed beams for all modes.
+    - ind_1 (int): An integer index of the mode.
+
+    Returns:
+    - bool: Returns False if an IndexError occurs, otherwise no return value.
+
+    Raises:
+    - IndexError: If the values for indices relating to plotting are out of bounds.
+    """
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    try:
+        inp_plt = ax1.imshow(np.abs(inp_beams[ind_1]))
+
+        res_plt = ax2.imshow(np.abs(res_beams[ind_1]))
+    except IndexError:
+        print('IndexError: Values for indices relating to plotting are out of bounds. Continuing without plotting.')
+        return False
+    
+    fig.colorbar(inp_plt, ax=ax1, fraction=0.046, pad=0.04)
+    fig.colorbar(res_plt, ax=ax2, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    plt.show()
+
+#It was decided that this attempted to do too many steps at once. It has been replaced with smaller functions
+def svd_calc_hg_decomp(res_beams: np.ndarray, res: int, pascals_row: int, waist_lst: list):
+    """
+    Calculate the singular value decomposition (SVD) of the measured beams and perform a Hermite-Gaussian decomposition
+    with different waist sizes.
+
+    Args:
+
+    res_beams: 2D array containing the measured beams
+    res: int value representing the number of pixels per axis
+    pascals_row: int value representing the number of rows in Pascal's triangle to be considered
+    waist_lst: list of float values representing the different waist sizes
+    Returns:
+
+    reconstruct: 4D array containing the reconstructed beams for each waist size
+    """
+
+    inp = prop.BeamProfile(res, screen_width, wavelength)
+
+    inp_beams_waists = []
+    mode_num = int(((1/2) * pascals_row) * (pascals_row + 1))
+
+    #calculate hg modes with different waist sizes
+    for waist in waist_lst:
+        inp_beams = []
+        for n in range(pascals_row):
+            m_max = pascals_row-n
+            for m in range(m_max):
+                inp.hermite_gaussian_beam(n, m, waist)
+                inp_beams.append(inp.field)
+
+        inp_beams_waists.append(inp_beams)
+
+    inp_beams_waists = np.asarray(inp_beams_waists)
+    reconstruct = np.zeros(
+        (len(waist_lst), mode_num, res, res), dtype=np.complex128)
+
+    #attempt to reconstruct the svd_received modes using different HG waist sizes
+    for i, wst in enumerate(inp_beams_waists):
+        flat_wst = np.reshape(wst, (mode_num, res, res))
+        for j, beam in enumerate(res_beams[0:mode_num]):
+            for md in flat_wst:
+                olap = np.trapz(np.trapz(beam * np.conj(md)))
+                reconstruct[i, j] += olap * md
+
+    return reconstruct
+
+def err_det(reconstruct_modes, meas_beams, res):
+
+    mode_num = np.shape(reconstruct_modes)
+    err = []
+    for i in range(mode_num):
+        arr_err = reconstruct_modes[i] - meas_beams[i]
+
+def crosstalk_plot(beams_true: np.ndarray, beams_tst: np.ndarray, mode_num: int, res: int):
+    """
+    Inputs:
+
+    beams_true (numpy.ndarray): Input array of true beam profiles with shape (mode_num * res * res).
+    beams_tst (numpy.ndarray): Input array of predicted beam profiles with shape (mode_num * res * res).
+    mode_num (int): Number of modes being considered.
+    res (int): Resolution of the beam profiles.
+    
+    Output:
+
+    None.
+
+    Description:
+    This function takes in two arrays of beam profiles beams_true and beams_tst and computes the crosstalk between them. The input beam profiles are reshaped according to mode_num and res and the crosstalk is calculated as the overlap integral between each pair of true and predicted beam profiles. The function then plots the resulting crosstalk matrix using imshow and displays a colorbar for reference.
+    """
+    beams_true_flt = np.array(beams_true.reshape(mode_num, res, res))
+    beams_tst_flt = np.array(beams_tst.reshape(mode_num, res, res))
+    cross = np.zeros((mode_num, mode_num))
+    for i in tqdm(range(mode_num)):
+        for j in range(mode_num):
+        # for this case I do not normalise my inut vectors
+            olap=np.trapz(np.trapz(beams_true_flt[i] * np.conj(beams_tst_flt[j])))
+            cross[i, j] = np.abs(olap)
+
+
+    fig, ax = plt.subplots(1)
+    im = ax.imshow(cross/cross[0, 0])
+
+    plt.colorbar(im, fraction = 0.046, pad = 0.04)
+    plt.show()
+
+'''
 
 if __name__ == '__main__':
 

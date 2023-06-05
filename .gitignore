@@ -1,0 +1,8 @@
+*__pycache__*
+svd_scripts/data/202*
+*.h5
+*.nb
+*.gif
+tmp*
+aleks_code/*
+cfd*

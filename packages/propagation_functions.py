@@ -159,6 +159,34 @@ def symmetric_rotated_meshgrid(res_x, res_y, pixel_size, rotation_deg, polar = F
         return pol2cart(radius, angle + (rotation_deg * np.pi / 180.0))
     
 
+def coll_calc(beams, res, screen_width, wvl, waist, delz):
+    """
+    Intended to perform collimation in the situation where the input beams are arrays, rather than members of the BeamProfile class. Note that collimation is performed w.r.t. the beam waist at the focal point.
+
+    Parameters:
+    - beams: a list of the beam fields that need to be collimated
+    - res: the screen resolution
+    - screen_width: the screen width
+    - wvl: the wavelength of the propagated beams
+    - waist: the beam waist of the input beams
+    - delz: the total propagation distance from the beam waist
+    """
+
+    l = 0
+    p = 0
+
+    beam_class = BeamProfile(res, screen_width, wvl)
+    beam_class.laguerre_gaussian_beam(l, p, waist, delz)
+
+    new_beams = []
+
+    for beam in beams:
+        beam_class.field = beam
+        beam_class.collimation(delz)
+        new_beams.append(beam_class.field)
+
+    new_beams = np.asarray(new_beams)
+    return new_beams
 
 def rytov_var(r0: float, wavelength: float, delz: float) -> float:
     wvl_term = np.power(2.0 * np.pi / wavelength, -5.0/6.0)
@@ -353,6 +381,19 @@ class BeamProfile:
         
         self.field = ift2(ft, 1/self.res)
 
+    def collimation(self, delz_total:float):
+        correction_beam = BeamProfile(self.res, self.screen_width, self.wavelength)
+
+        correction_beam.laguerre_gaussian_beam(0, 0, self.beam_waist, delz_total)
+
+        # I currently have to conjugate here as the beam is propagating in the wrong direction in free_space_prop
+        #IF THE PROPAGATION DIRECTION IS FIXED THIS ALSO NEEDS TO BE FIXED
+        self.wavefront_correction(np.conj(correction_beam.field))
+        del(correction_beam)
+
+
+    def wavefront_correction(self, correction_beam:list):
+        self.field *= np.exp(-1j * np.angle(correction_beam))
 
 class PhaseScreen:
     def __init__(self, screen_width: float, res: int, r0 : float, l0: float, L0: float):
