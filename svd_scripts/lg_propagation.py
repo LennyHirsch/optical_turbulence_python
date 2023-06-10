@@ -143,11 +143,7 @@ def propagate_modes(inp_beams: np.ndarray, t_screens: np.ndarray, delz_step: flo
     #This method will only work under the assumption that the gaussian mode is the 30th entry of the multidimensional array
     if collimate_beams == 1:
         print('\nCollimating beams...')
-       # free_space_diff = calculate_input_modes(params.delz)
-        free_space_diff = prop.BeamProfile(params.res, params.screen_width, wavelength)
-        free_space_diff.laguerre_gaussian_beam(0, 0, params.waist, params.delz)
-        for i in range(len(res_beams)):
-            res_beams[i] *= np.exp(1j * np.angle(free_space_diff.field))
+        res_beams = prop.coll_calc(res_beams, params.res, params.screen_width, wavelength, params.waist, params.delz)
 
     return res_beams
 

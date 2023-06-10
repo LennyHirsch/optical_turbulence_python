@@ -221,9 +221,6 @@ def calc_svd_modes(data_dir: str, wst: float):
 
     return svd_trans_modes, svd_rec_modes
 
-def wavelength_crsstlk(data_dir, wst, wvl_lst):
-    pass
-
 def main(data_dir: str):
     #refactor so that data_dir is passed and can be passed as a list
     #refactor so that it can take a range of wavelengths and range of waists
@@ -271,7 +268,6 @@ def main(data_dir: str):
 
         print([wst, s, sum(s)])
 
-        #I have confirmed that these modes are the same as the ones I use for the wavelength invariance test
         svd_trans_modes = svd_funcs.svd_inp_modes_calc(
             v, inp_beams, params.mode_num, params.res, params.trans_modes_num, params.screen_width)
         
@@ -281,26 +277,7 @@ def main(data_dir: str):
         svd_rec_modes = svd_funcs.channel_propagtion(
             svd_trans_modes, t_screens_obj, params.inp_ap_width, params.rec_ap_width, params.screen_width, delz_step, params.trans_modes_num, params.res)
 
-        #COLLIMATE THESE MODES
-        #svd_rec_modes = coll_calc(svd_rec_modes, 1, 512, 0.4, 1.55e-6, 0.02, 1000)
-        hg_rec = np.zeros((params.res, params.res))
-
         print("\nCalculating HG modes for overlap...")
-        '''
-        inp = prop.BeamProfile(
-            params.res, params.screen_width, params.wavelength)
-        hg_beams = []
-        for n in tqdm(range(params.pascals_row)):
-            m_max = params.pascals_row-n
-            for m in range(m_max):
-                inp.hermite_gaussian_beam(n, m, wst)
-                #print(f'{n}, {m}')
-                norm_const = np.trapz(np.trapz(
-                    inp.field * np.conj(inp.field), dx=params.screen_width/params.res), dx=params.screen_width/params.res)
-                tmp = inp.field/np.sqrt(norm_const)
-                #print(np.trapz(np.trapz(tmp * np.conj(tmp), dx = screen_width/res), dx = screen_width/res))
-                hg_beams.append(inp.field / np.sqrt(norm_const))
-        '''
 
         # make these programatic instead of defined
         hg_beams =svd_funcs.generate_hg_modes(5, 512, 0.4, 1.55e-9, 0.024)
@@ -309,7 +286,6 @@ def main(data_dir: str):
         all_recs = []
         olap_hld = []
 
-        #THIS LOOKS TO BE TOO MANY STEPS AT ONCE, THERE IS A DIFFERENCE BETWEEN MY WAVELENGTH INVARIANT RECREATION AND THIS. INVESTIGATE FURTHER
         svd_rec_modes  = prop.coll_calc(svd_rec_modes, params.res, params.screen_width, 1.55e-6, 0.02, 1000)
         
         svd_hg_decomp = np.asarray(svd_funcs.hg_decomp_calc(svd_rec_modes, params.pascals_row, params.waist, params.res, params.screen_width, params.wavelength))
@@ -317,32 +293,15 @@ def main(data_dir: str):
         for iii, hg_decomp in enumerate(svd_hg_decomp):
             svd_hg_decomp[iii] /=np.sqrt(np.sum(np.abs(hg_decomp * np.conj(hg_decomp))))
 
-        '''
-
-        for beam in tqdm(svd_rec_modes):
-            rec = np.zeros((params.res, params.res), dtype=np.complex128)
-            olap_tmp = []
-            for md in hg_beams:
-                olap = np.trapz(np.trapz(
-                    beam * np.conj(md), dx=params.screen_width/params.res), dx=params.screen_width/params.res)
-            #    rec += olap * md
-                olap_tmp.append(olap)
-            #all_recs.append(rec)
-            olap_hld.append(olap_tmp)
-
-#ALL NEW
-            
-        for iii, hg_decomp in enumerate(olap_hld):
-            olap_hld[iii] /= np.sqrt(np.sum(np.abs(hg_decomp * np.conj(hg_decomp))))
-        '''
         for ii in range(15):
             rec = np.zeros((params.res, params.res), dtype=np.complex128)
             for jj in range(15):
                 rec += hg_beams[jj] * svd_hg_decomp[ii][jj]
             all_recs.append(rec)
-            
-#TO HEERE
+
         all_recs = np.asarray(all_recs)
+
+        #plttoing and saving results
         #np.save('/Users/ultandaly/Desktop/tmp_svd/np_arrs/hg_decomp.npy', olap_hld)
         #np.save('/Users/ultandaly/Desktop/tmp_svd/np_arrs/screens.npy', svd_rec_modes)
         #print(np.sum(all_recs[0] * np.conj(all_recs[0])))
@@ -355,37 +314,18 @@ def main(data_dir: str):
 
         crss = np.zeros((15, 15))
 
+        #I have to ensure that the power in each mode is normlaised, otherwise the crosstalk increases significantly
         for iii, rec in enumerate(all_recs):
             all_recs[iii] /= np.sqrt(np.trapz(np.trapz(all_recs[iii] * np.conj(all_recs[iii]))))
 
         for ii in range(15):
             for j in range(15):
 
-                # /np.sqrt(np.trapz(np.trapz(all_recs[ii] * np.conj(all_recs[ii]), dx = params.screen_width/params.res), dx = params.screen_width/params.res))
-                tmp = all_recs[ii]
-                # /np.sqrt(np.trapz(np.trapz(svd_rec_modes[j] * np.conj(svd_rec_modes[j]), dx = params.screen_width/params.res), dx = params.screen_width/params.res))
-                tmp_2 = svd_rec_modes[j]
-
                 crss[ii, j] = np.abs(np.trapz(np.trapz(all_recs[ii] * np.conj(all_recs[j]),
                                      dx=params.screen_width/params.res), dx=params.screen_width/params.res))
         print(crss)
         plt.imshow(10*np.log10((crss)))
         plt.show()
-    #crss_lst_mean = np.mean(crss_lst, axis = 0)
-    #plt.imshow(crss_lst_mean)
-    #plt.title('SVD Received Modes Crosstalk')
-    #plt.colorbar()
-    #plt.show()
-
-        #for rec in svd_rec_modes:
-        #    print(np.sqrt(np.sum(np.abs(rec)**2.0)))
-
-        #reconstruct, olap = svd_funcs.svd_reconstruct(err_mode_num, res_beams, #svd_rec_modes[0:err_mode_num], res)
-
-       # svd_funcs.plot_gaussian_reconstruction(reconstruct, res_beams, 0)
-    # are my received SVD modes orthogonal?
-        #print(np.shape(svd_rec_modes))
-        #svd_funcs.crosstalk_plot(svd_rec_modes, err_mode_num, res)
 
 if __name__ == '__main__':
     main('/Users/ultandaly/Library/CloudStorage/OneDrive-UniversityofGlasgow/Projects/python_simulation/svd_scripts/data/20230419/lg_prop_rep_many_inps/coll_fin_l_5_p_5_v013/')
