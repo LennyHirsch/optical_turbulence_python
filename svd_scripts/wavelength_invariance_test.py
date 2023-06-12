@@ -180,7 +180,7 @@ def main(realisation):
         #save hg decompositions
         
         #this will effectively capture the actual coupling efficiencies into each mode
-        np.save(wavelength_dirs[i] + 'hg_decomposition_powers.npy', hg_decomp_new)
+        np.save(wavelength_dirs[i] + '/hg_decomposition_powers.npy', hg_decomp_new)
 
         for iii, hg_decom in enumerate(hg_decomp_new):
             hg_decomp_new[iii] /= np.sqrt(np.sum(np.abs(hg_decom * np.conj(hg_decom))))

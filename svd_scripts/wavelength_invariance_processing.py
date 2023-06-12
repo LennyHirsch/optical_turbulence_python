@@ -5,7 +5,7 @@ from matplotlib.animation import FuncAnimation
 import sys
 import glob
 from PIL import Image
-import cmasher as cmr
+#import cmasher as cmr
 
 def create_plot(crss, save_dir, i_wvl):
 
