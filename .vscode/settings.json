@@ -2,5 +2,7 @@
     "python.analysis.extraPaths": [
         "./packages",
         "./svd_scripts/data"
-    ]
+    ],
+    "editor.tabCompletion": "on",
+    "diffEditor.codeLens": true
 }
