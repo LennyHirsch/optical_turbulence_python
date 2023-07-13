@@ -312,6 +312,10 @@ class BeamProfile:
         """"""
         self.field = self.field * np.exp(1j * phasescreen)
 
+    # Lenny's function to apply absorber screen
+    def apply_absorber_screen(self, absorber_screen: np.ndarray) -> None:
+        self.field = np.multiply(self.field, absorber_screen)
+
     def apply_sg_ap(self, ap_width, sg_power):
 
         x = np.linspace(-self.screen_width/2, self.screen_width/2, self.res)
@@ -394,6 +398,35 @@ class BeamProfile:
 
     def wavefront_correction(self, correction_beam:list):
         self.field *= np.exp(-1j * np.angle(correction_beam))
+
+# Lenny's functions
+class AbsorberScreen:
+    def __init__(self, screen_width: float, res: int, particle_size: float, n: int):
+        self.screen_width = screen_width
+        self.res = res
+        self.particle_size: particle_size
+        self.n = n
+        
+        self.grid = 0.0
+
+    def generate_absorbers(self):
+        array = np.array(([1] * int((self.res**2)-self.n)) + ([0] * int(self.n)))
+        np.random.shuffle(array)
+
+        grid = [ [] for _ in range(self.res) ]
+
+        for i in range(self.res):
+            arr = []
+            start = i*self.res
+            end = start + self.res
+            grid[i] = array[start:end]
+
+        # for item in grid:
+        #     if len(item[0]) != self.res:
+        #         print("Not the right length...")
+
+        self.grid = grid
+        return(grid)
 
 class PhaseScreen:
     def __init__(self, screen_width: float, res: int, r0 : float, l0: float, L0: float):
