@@ -20,6 +20,7 @@ def total_particles(vol_maallox, vol_water):
 
     parts = parts_per_ul_maalox * vol_maallox
     parts_per_ml = parts / vol_water
+    print(parts)
 
     return(parts, parts_per_ml)
 
