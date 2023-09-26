@@ -5,7 +5,11 @@ import matplotlib.pyplot as plt
 
 res = 2048 #i wouldn't recommend going too much higher than this for resolution
 screen_width = 4 # the cross sectional width and height of the simulation
-wvl = 0.65e-9 
+number_of_particles = 5000
+wvl = 0.65e-9
+mode = 5
+pixel_size = screen_width / res # if we let screen_width be in mm, we can calculate pixel size. From this we can calculate how large the particulates should be.
+particle_size = 11e-3 / pixel_size
 
 # generate instance of beam class
 beam = prop.BeamProfile(res, screen_width, wvl)
@@ -13,7 +17,7 @@ beam = prop.BeamProfile(res, screen_width, wvl)
 #generate the beam specifics, there is also a hg option, but with these options it is a simple collimated gaussian beam 
 beam_waist = 0.5
 initial_z = 0
-beam.laguerre_gaussian_beam(2, 0, beam_waist, initial_z)
+beam.laguerre_gaussian_beam(mode, 0, beam_waist, initial_z)
 
 #propagate the beam some distance 
 dis = 10000
@@ -21,10 +25,10 @@ beam.free_space_prop(dis)
 
 #THIS WILL NEED TO BE CHANGED TO ABSORBERS RATHER THAN A RI SCREEN BUT THE PRINCIPLE SHOULD BE THE SAME
 
-absorbers = prop.AbsorberScreen(screen_width, res, 11e-6, 1000)
+absorbers = prop.AbsorberScreen(screen_width, res, 11e-6, number_of_particles)
 absorbers.generate_absorbers()
 grid = absorbers.grid
-circles = absorbers.plot_circles(grid)
+circles = absorbers.plot_circles(grid, particle_size, res)
 beam.apply_absorber_screen(circles)
 
 #generate the phase screen - don't worry too much

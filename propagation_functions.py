@@ -422,16 +422,16 @@ class AbsorberScreen:
 
         return neighborhood
     
-    def plot_circles(self, griddy):
-        arr = np.ones((2048,2048))
-        for x in range(2000):
-            for y in range(2000):
+    def plot_circles(self, griddy, particle_size, res):
+        arr = np.ones((res,res))
+        for x in range(int(res-particle_size)):
+            for y in range(int(res-particle_size)):
                 if griddy[x][y] == 0:
                     points = []
 
-                    X = 11
+                    X = int(particle_size)
                     for i in range(-X, X + 1):
-                        Y = int(pow(11 * 11 - i * i, 1/2))
+                        Y = int(pow(X * X - i * i, 1/2))
                         for j in range(-Y, Y + 1):
                             points.append((x + i, y + j))
 
