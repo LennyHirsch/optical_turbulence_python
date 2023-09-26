@@ -409,6 +409,36 @@ class AbsorberScreen:
         
         self.grid = 0.0
 
+    def calculate_circle_positions(x: int, y: int, radius: float =3.0):
+        """ create a small collection of points in a neighborhood of some point 
+        """
+        neighborhood = []
+
+        X = int(radius)
+        for i in range(-X, X + 1):
+            Y = int(pow((radius) * (radius) - i * i, 1/2))
+            for j in range(-Y, Y + 1):
+                neighborhood.append((x + i, y + j))
+
+        return neighborhood
+    
+    def plot_circles(self, griddy):
+        arr = np.ones((2048,2048))
+        for x in range(2000):
+            for y in range(2000):
+                if griddy[x][y] == 0:
+                    points = []
+
+                    X = 11
+                    for i in range(-X, X + 1):
+                        Y = int(pow(11 * 11 - i * i, 1/2))
+                        for j in range(-Y, Y + 1):
+                            points.append((x + i, y + j))
+
+                    for p in points:
+                        arr[p] = 0
+        return arr
+
     def generate_absorbers(self):
         array = np.array(([1] * int((self.res**2)-self.n)) + ([0] * int(self.n)))
         np.random.shuffle(array)

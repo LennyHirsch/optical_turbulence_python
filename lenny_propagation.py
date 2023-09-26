@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-res = 512 #i wouldn't recommend going too much higher than this for resolution
+res = 2048 #i wouldn't recommend going too much higher than this for resolution
 screen_width = 4 # the cross sectional width and height of the simulation
 wvl = 0.65e-9 
 
@@ -21,9 +21,11 @@ beam.free_space_prop(dis)
 
 #THIS WILL NEED TO BE CHANGED TO ABSORBERS RATHER THAN A RI SCREEN BUT THE PRINCIPLE SHOULD BE THE SAME
 
-absorbers = prop.AbsorberScreen(screen_width, res, 11e-6, 10000)
+absorbers = prop.AbsorberScreen(screen_width, res, 11e-6, 1000)
 absorbers.generate_absorbers()
-beam.apply_absorber_screen(absorbers.grid)
+grid = absorbers.grid
+circles = absorbers.plot_circles(grid)
+beam.apply_absorber_screen(circles)
 
 #generate the phase screen - don't worry too much
 # l0 = 0.001
