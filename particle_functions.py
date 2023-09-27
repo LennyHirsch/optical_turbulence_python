@@ -40,7 +40,7 @@ def particles_per_sec(spot_size, flow_rate, maalox_vol, water_vol):
 
     return (parts_per_sec, time)
 
-spot_diameter = 0.002
+spot_diameter = 1.5e-3
 volume_maalox = 30 # in ul
 volume_water = 60 # in ml
 flow_rate = 2 # in ml/s
