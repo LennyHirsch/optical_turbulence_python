@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 res = 512 #i wouldn't recommend going too much higher than this for resolution
 screen_width = 0.01 # the cross sectional width and height of the simulation
-number_of_particles = 5000
+number_of_particles = 1000
 wvl = 6.5e-9
 mode = 5
 pixel_size = screen_width / res # if we let screen_width be in mm, we can calculate pixel size. From this we can calculate how large the particulates should be.
@@ -20,7 +20,7 @@ initial_z = 0
 beam.laguerre_gaussian_beam(mode, 0, beam_waist, initial_z)
 
 #propagate the beam some distance 
-dis = 0.5
+dis = 1
 beam.free_space_prop(dis)
 
 #THIS WILL NEED TO BE CHANGED TO ABSORBERS RATHER THAN A RI SCREEN BUT THE PRINCIPLE SHOULD BE THE SAME
