@@ -404,42 +404,38 @@ class AbsorberScreen:
     def __init__(self, screen_width: float, res: int, particle_size: float, n: int):
         self.screen_width = screen_width
         self.res = res
-        self.particle_size: particle_size
+        self.particle_size = particle_size
         self.n = n
         
         self.grid = 0.0
 
-    def calculate_circle_positions(x: int, y: int, radius: float =3.0):
-        """ create a small collection of points in a neighborhood of some point 
-        """
-        neighborhood = []
-
-        X = int(radius)
-        for i in range(-X, X + 1):
-            Y = int(pow((radius) * (radius) - i * i, 1/2))
-            for j in range(-Y, Y + 1):
-                neighborhood.append((x + i, y + j))
-
-        return neighborhood
-    
-    def plot_circles(self, griddy, particle_size, res):
-        arr = np.ones((res,res))
-        for x in range(int(res-particle_size)):
-            for y in range(int(res-particle_size)):
-                if griddy[x][y] == 0:
+    def generate_circles(self):
+        '''
+        Generates a 2D grid containing circular absorbers of a certain size.
+        Takes a grid of absorber positions, then generates the pixels surrounding those positions.
+        '''
+        arr = np.ones((self.res, self.res))
+        for x in range(int(self.res - self.particle_size)):
+            for y in range(int(self.res - self.particle_size)):
+                if self.grid[x][y] == 0:
                     points = []
-
-                    X = int(particle_size)
+                    X = int(self.particle_size)
                     for i in range(-X, X + 1):
                         Y = int(pow(X * X - i * i, 1/2))
                         for j in range(-Y, Y + 1):
                             points.append((x + i, y + j))
-
+                    
                     for p in points:
                         arr[p] = 0
-        return arr
+
+        self.grid = arr
+        return(arr)
 
     def generate_absorbers(self):
+        '''
+        Generates a 1D array made up of 1s and 0s, then turns this array into a 2D matrix, representing a 2D plane of absorbers.
+        A 0 represents the centre of an absorber. generate_circles() is then used to generate circular absorbers of a given size centred on these positions.
+        '''
         array = np.array(([1] * int((self.res**2)-self.n)) + ([0] * int(self.n)))
         np.random.shuffle(array)
 
@@ -451,11 +447,8 @@ class AbsorberScreen:
             end = start + self.res
             grid[i] = array[start:end]
 
-        # for item in grid:
-        #     if len(item[0]) != self.res:
-        #         print("Not the right length...")
-
         self.grid = grid
+        self.generate_circles()
         return(grid)
 
 class PhaseScreen:

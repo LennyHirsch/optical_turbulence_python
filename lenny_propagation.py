@@ -25,11 +25,9 @@ beam.free_space_prop(dis)
 
 #THIS WILL NEED TO BE CHANGED TO ABSORBERS RATHER THAN A RI SCREEN BUT THE PRINCIPLE SHOULD BE THE SAME
 
-absorbers = prop.AbsorberScreen(screen_width, res, 11e-6, number_of_particles)
+absorbers = prop.AbsorberScreen(screen_width, res, particle_size, number_of_particles)
 absorbers.generate_absorbers()
-grid = absorbers.grid
-circles = absorbers.plot_circles(grid, particle_size, res)
-beam.apply_absorber_screen(circles)
+beam.apply_absorber_screen(absorbers.grid)
 
 #generate the phase screen - don't worry too much
 l0 = 0.001
